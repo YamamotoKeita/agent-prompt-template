@@ -1,4 +1,8 @@
 ---
-applyTo: '.claude/skills/**/SKILL.md'
-paths: ['.claude/skills/**/SKILL.md']
+applyTo: '.claude/skills/**'
+paths: ['.claude/skills/**']
 ---
+# Skillのパス解決
+
+SKILL.md に記載されている scripts や references へのパスは、スキルルート (SKILL.md が置かれているディレクトリ) を基準にした相対パスで記載されている。エージェントの作業ディレクトリからの相対パスとして解釈してはならない。
+スクリプトを実行する場合は、まずスキルルートを基準にパスを解決し、その解決済みの絶対パスを実行する。
