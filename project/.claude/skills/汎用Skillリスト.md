@@ -1,12 +1,12 @@
-# 開発で汎用的に使えるSkillの検討
+# 開発で汎用的に使えるSkill
 
 ユーティリティー系はProgressive Disclosureを積極的に利用して、一つのSkillで様々な操作ができるようにする。
 
 ## 共通
-- create-skill: Agent Skillを作る
+- ✅ create-skill: Agent Skillを作る
 
 ## ユーティリティー
-- git: commit / push / merge / コンフリクト解消などのGit操作
+- ✅ git: commit / push / merge / コンフリクト解消などのGit操作
 - github: PRの作成など
 - open-tool: 各種IDEやブラウザなど、エージェントから別Windowを立ち上げる
 - interview: 計画の詳細を詰める。見落としがちなエッジケースの考慮漏れなどを検出

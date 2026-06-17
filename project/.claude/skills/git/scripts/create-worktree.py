@@ -93,16 +93,6 @@ def parse_worktree_porcelain(output: str) -> list[dict[str, str]]:
     return entries
 
 
-def ref_contains_path(repo_root: Path, git_ref: str, relative_path: str) -> bool:
-    completed = subprocess.run(
-        ["git", "-C", str(repo_root), "cat-file", "-e", f"{git_ref}:{relative_path}"],
-        check=False,
-        text=True,
-        capture_output=True,
-    )
-    return completed.returncode == 0
-
-
 def find_remote_tracking_refs(repo_root: Path, branch_name: str) -> list[str]:
     remote_refs = git_lines(repo_root, "for-each-ref", "--format=%(refname:short)", "refs/remotes")
     suffix = f"/{branch_name}"
@@ -141,7 +131,7 @@ def copy_item(
     if destination_path.exists():
         remove_path(destination_path)
 
-    run_command(["mkdir", "-p", str(destination_path.parent)])
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
 
     if source_path.is_dir():
         shutil.copytree(source_path, destination_path)
@@ -220,12 +210,7 @@ def main() -> int:
         elif fetch_result.returncode != 0:
             notes.append("Fetch from origin failed; used local main as the base ref")
 
-    target_ref_for_mise = effective_base if create_new_branch else (branch_name if existing_branch_is_local else existing_branch_source_ref)
-    target_has_mise_toml = ref_contains_path(repo_root, target_ref_for_mise, "mise.toml")
-    if target_has_mise_toml and shutil.which("mise") is None:
-        fail("mise command not found")
-
-    run_command(["mkdir", "-p", str(worktrees_dir)])
+    worktrees_dir.mkdir(parents=True, exist_ok=True)
 
     if create_new_branch:
         run_command(
@@ -253,9 +238,12 @@ def main() -> int:
                 ],
             )
 
-    run_command(["mkdir", "-p", str(target_path / ".user")])
-
-    for relative_path in ["Carthage", "syukatsu-kaigi-ios/Config/Secrets.xcconfig", "SKApollo"]:
+    # --others: 未追跡ファイル（gitignore 対象も含む）を対象にする。
+    #   node_modules や Carthage など、worktree でビルド・実行に必要な Git 管理外資産を運ぶため。
+    # --directory: 丸ごと未追跡のディレクトリを1エントリに畳む。
+    #   1ファイルずつ列挙して個別コピーすると激遅になるため、ディレクトリ単位で copytree する。
+    for relative_path in git_lines(source_root, "ls-files", "--others", "--directory"):
+        relative_path = relative_path.rstrip("/")
         copy_item(
             source_root=source_root,
             target_path=target_path,
@@ -263,11 +251,6 @@ def main() -> int:
             copied_items=copied_items,
             skipped_items=skipped_items,
         )
-
-    mise_status = "no mise.toml"
-    if target_has_mise_toml:
-        run_command(["mise", "trust", str(target_path / 'mise.toml')])
-        mise_status = "trusted"
 
     print(f"Branch: {branch_name}")
     print(f"Worktree path: {target_path}")
@@ -290,8 +273,6 @@ def main() -> int:
             print(f"  - {item}")
     else:
         print("  - none")
-
-    print(f"mise trust: {mise_status}")
 
     if notes:
         print("Notes:")
